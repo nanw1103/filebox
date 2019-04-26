@@ -13,3 +13,5 @@ Tiny file upload & download server, in NodeJs. All in one self-contained file, w
 node filebox.js 4200
 ```
 
+### Use a custom context root
+Change CONTEXT_ROOT in filebox.js
