@@ -7,10 +7,4 @@ Tiny file upload & download server, in NodeJs. All in one self-contained file, w
 > cd filebox
 > node filebox.js
 ```
-The application will be served on `:3000`
-
-### Start with specific port 4200
-```
-node server.js 4200
-```
 
