@@ -19,4 +19,4 @@ Change CONTEXT_ROOT in filebox.js
 ![FileBox](https://github.com/nanw1103/filebox/blob/master/filebox-screenshot.png?raw=true)
 
 
-Some HTML from https://github.com/sysleaf/nodejs-download-upload-server
+Some part of the HTML is cloned from https://github.com/sysleaf/nodejs-download-upload-server
