@@ -15,3 +15,5 @@ node filebox.js 4200
 
 ### Use a custom context root
 Change CONTEXT_ROOT in filebox.js
+
+![FileBox](https://github.com/nanw1103/filebox/blob/master/filebox-screenshot.png?raw=true)
