@@ -26,10 +26,11 @@ const REPO = path.join(__dirname, 'download')
 if (!fs.existsSync(REPO))
 	fs.mkdir(REPO, err => { if (err) console.error(err) })
 
+const ctxRootNoSlash = CONTEXT_ROOT.substring(0, CONTEXT_ROOT.length - 1)
 function requestHandler(req, res) {
 	let handler
-	if (req.url === CONTEXT_ROOT && req.method === 'GET') {
-		return sendResp(RESP_INDEX)
+	if (req.url === CONTEXT_ROOT || req.url === ctxRootNoSlash && req.method === 'GET') {
+			return sendResp(RESP_INDEX)
 	} else if (req.url === `${CONTEXT_ROOT}list` && req.method === 'POST') {
 		handler = listFiles
 	} else if (req.url === `${CONTEXT_ROOT}clear` && req.method === 'POST') {
@@ -365,45 +366,65 @@ const INDEX_HTML = `
 </head>
 
 <body>
-	<h3>FileBox</h3>
 	<table>
 		<tr>
 			<td>
-				<!-- Upload -->
-				<label for="upload" class="btn btn-raised">Upload</label>
-				<input class="hidden" id="upload" type="file" onchange="uploadFile(event)" /><br/>
+				<h3>FileBox</h3>
 			</td>
-			<td width='50'></td>
 			<td>
-				<!-- Clear -->
-				<a href='#' onClick="clearFiles()">Delete All</a>
+			</td>
+		</tr>
+		<tr>
+			<td valign='top' width='45%'>
+				<table>
+					<tr>
+						<td>
+							<!-- Upload -->
+							<label for="upload" class="btn btn-raised">Upload</label>
+							<input class="hidden" id="upload" type="file" onchange="uploadFile(event)" /><br/>
+						</td>
+						<td width='50'></td>
+						<td>
+							<!-- Clear -->
+							<a href='#' onClick="clearFiles()">Delete All</a>
+						</td>
+					</tr>
+				</table>
+				<ol id="download"></ol>
+			</td>
+			<td width='150'>
+			</td>
+			<td valign='top' width='45%'>
+				<table class='hint'>
+					<tr>
+						<td nowrap>CLI example - upload:</td>
+						<td nowrap>curl -X PUT <span name="href_field"></span>myfile -T myfile</td>
+					</tr>
+					<tr>
+						<td nowrap valign="top">CLI example - download:</td>
+						<td nowrap>
+							curl <span name="href_field"></span>myfile<br/>
+							wget <span name="href_field"></span>myfile
+						</td>
+					</tr>
+				</table>
+				<br/>
+				<a href='https://github.com/nanw1103/filebox' class='hint'>https://github.com/nanw1103/filebox</a>
 			</td>
 		</tr>
 	</table>
-	<ol id="download"></ol>
-	<br/>
-	<table class='hint'>
-		<tr>
-			<td nowrap>CLI example - upload:</td>
-			<td nowrap>curl -X PUT <span name="href_field"></span>myfile -T myfile</td>
-		</tr>
-		<tr>
-			<td nowrap valign="top">CLI example - download:</td>
-			<td nowrap>
-				curl <span name="href_field"></span>myfile<br/>
-				wget <span name="href_field"></span>myfile
-			</td>
-		</tr>
-	</table>
-	<br/><br/>
-	<a href='https://github.com/nanw1103/filebox' class='hint'>https://github.com/nanw1103/filebox</a>
+	
+	
 
 	<div id="toast"></div>
 	<script>
 		var downloadDOM = document.getElementById('download')
 		var toastDOM = document.getElementById('toast')
 		listFiles()
-		let baseUrl = window.location.href.substring(0, window.location.href.indexOf('#'))
+		let baseUrl = window.location.href
+		let indexOfHash = baseUrl.indexOf('#')
+		if (indexOfHash > 0)
+			baseUrl = baseUrl.substring(0, indexOfHash)
 		let hostFields = document.getElementsByName('href_field')
 		for (let f of hostFields)
 			f.innerText = baseUrl
