@@ -48,7 +48,8 @@ function requestHandler(req, res) {
 		return sendResp(RESP_404)
 	}
 
-	handler(req, res)
+	let safeTask = async () => handler(req, res)
+	safeTask()
 		.catch(err => createResponse(err.toString(), err.statusCode || 500))
 		.then(sendResp)
 
@@ -109,13 +110,14 @@ function uploadFile(req) {
 	let file = path.join(REPO, target)
 
 	let contentType = req.headers['content-type']
-	if (contentType.startsWith('multipart/form-data;')) {
-		return handleMultiPartUpload()
-	} else if (contentType.startsWith('application/x-www-form-urlencoded')) {
-		return handleBinaryUpload()
-	} else {
-		return handleBinaryUpload()
+	if (contentType) {
+		if (contentType.startsWith('multipart/form-data;'))
+			return handleMultiPartUpload()
+		if (contentType.startsWith('application/x-www-form-urlencoded'))
+			return handleBinaryUpload()
+		cosnole.log('Unknown content type:', contentType)
 	}
+	return handleBinaryUpload()
 
 	function handleBinaryUpload() {
 		return new Promise((resolve, reject) => {
