@@ -427,6 +427,8 @@ const INDEX_HTML = `
 		let indexOfHash = baseUrl.indexOf('#')
 		if (indexOfHash > 0)
 			baseUrl = baseUrl.substring(0, indexOfHash)
+		if (!baseUrl.endsWith('/'))
+			baseUrl += '/'
 		let hostFields = document.getElementsByName('href_field')
 		for (let f of hostFields)
 			f.innerText = baseUrl
