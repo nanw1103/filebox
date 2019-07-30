@@ -271,7 +271,7 @@ function getClientIp(req) {
 
 //--------------------------------
 const INDEX_HTML = fs.readFileSync('./template.html', 'utf8')
-INDEX_HTML.replace('${CONTEXT_ROOT_PLACE_HOLDER}', CONTEXT_ROOT)
+	.replace('${CONTEXT_ROOT_PLACE_HOLDER}', CONTEXT_ROOT)
 
 const RESP_200 = createResponse('', 200)
 const RESP_400 = createResponse('Invalid request', 400)
