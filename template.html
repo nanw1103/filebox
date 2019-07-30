@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>FileBox</title>
+	<link rel="icon" type="image/x-icon" href="data:image/x-icon;data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAA7EAAAOxAGVKw4bAAAABGdBTUEAALGOfPtRkwAAACBjSFJNAAB6JQAAgIMAAPn/AACA6QAAdTAAAOpgAAA6mAAAF2+SX8VGAAABG0lEQVR42mL8//8/w0ACgABioUQz4+KX92Hs/7HiiuSYARBATFTwhAIlmgECiIlhgAFAALFQO0hJjS6AAGLCFaTIGqhoOUZ0AQQQNgc8oKYj0Cx/gC4PEEAoDkAKGqo4Apvl6FELEEAYIYDNEVTIJQ9wpSuAAMKaC9AcQQg8IEYeV6IGCCDGgS4JAQJowMsBgAAacAcABNCAOwAggFiIKbmoAXAlQoAAYiEiC1ED4MwpAAE04FEAEEAsRAYfI5klIcE8DhBAAx4CAAE04A4ACKABdwBAAA24AwACaMAdABBAA+4AgAAacAcABNCAOwAggIgqiIgpUMgFAAE04CEAEECEQuABrR0AEEAD3iQDCKABjwKAABpwBwAEGAAhqEKviILPUgAAAABJRU5ErkJggg==" />
+	<style>
+		body {
+			display: flex;
+			flex-direction: column;
+			justify-content: flex-start;
+			align-content: center;
+			align-items: center;
+		}
+
+		#toast {
+			visibility: hidden;
+			background-color: black;
+			min-width: 250px;
+			margin-left: -125px;
+			color: #fff;
+			text-align: center;
+			border-radius: 2px;
+			padding: 16px;
+			position: fixed;
+			z-index: 1;
+			left: 50%;
+			bottom: 30px;
+		}
+
+		.toast-visible-error {
+			visibility: visible !important;
+			animation: fadein 0.5s, fadeout 0.5s 2.5s;
+			background-color: red !important;
+		}
+
+		.toast-visible-success {
+			visibility: visible !important;
+			animation: fadein 0.5s, fadeout 0.5s 2.5s;
+			background-color: green !important;
+		}
+
+		.hint {
+			color: #888;
+			text
+		}
+		
+		@keyframes fadein {
+			from {
+				bottom: 0;
+				opacity: 0;
+			}
+			to {
+				bottom: 30px;
+				opacity: 1;
+			}
+		}
+
+		@keyframes fadeout {
+			from {
+				bottom: 30px;
+				opacity: 1;
+			}
+			to {
+				bottom: 0;
+				opacity: 0;
+			}
+		}
+
+		.btn {
+			display: inline-block;
+			min-width: 88px;
+			height: 36px;
+			line-height: 36px;
+			border: none;
+			border-radius: 5px;
+			background-color: orange;
+			text-align: center;
+			text-decoration: none;
+			text-transform: uppercase;
+			padding: 0 10px;
+			color: white;
+			cursor: pointer;
+			transition: opacity 0.25s ease-in-out;
+		}
+
+		.btn-raised {
+			box-shadow: var(--bs1);
+		}
+
+		.btn-clear {
+			background-color: grey;
+		}
+
+		.hidden {
+			display: none;
+		}
+	</style>
+	<script type='text/javascript'>
+		let CONTEXT_ROOT = '${CONTEXT_ROOT_PLACE_HOLDER}'
+		if (CONTEXT_ROOT.indexOf('CONTEXT_ROOT_PLACE_HOLDER') > 0)	//if it's not replaced
+			CONTEXT_ROOT = '/'
+		const FILENAME_PERSIST_NOTEPAD = '_persist-notepad.txt'
+
+		let downloadDOM
+		let toastDOM
+		let persistNotepadDOM
+		function onload() {
+			downloadDOM = document.getElementById('download')
+			toastDOM = document.getElementById('toast')
+			persistNotepadDOM = document.getElementById('persist-notepad')
+			
+			let baseUrl = window.location.href
+			let indexOfHash = baseUrl.indexOf('#')
+			if (indexOfHash > 0)
+				baseUrl = baseUrl.substring(0, indexOfHash)
+			if (!baseUrl.endsWith('/'))
+				baseUrl += '/'
+			let hostFields = document.getElementsByName('href_field')
+			for (let f of hostFields)
+				f.innerText = baseUrl
+
+			listFiles()
+			readPersistNotepad()
+		}
+
+		function uploadFile(event) {
+			let target = event.target || event.srcElement || event.currentTarget
+			let file = target.files[0]
+			sendRequest('PUT', CONTEXT_ROOT + file.name, file, result => {
+				showToastMessage('Uploaded', 'success')
+				listFiles()
+			})
+			event.target.value = ''
+		}
+
+		function deleteFile(name) {
+			sendRequest('DELETE', CONTEXT_ROOT + name, null, result => {
+				showToastMessage('Deleted', 'success')
+				listFiles()
+			})
+		}
+
+		function clearFiles(event) {
+			sendRequest('POST', CONTEXT_ROOT + 'clear', null, result => {
+				showToastMessage('Cleared', 'success')
+				listFiles()
+				cachedPersistNotepad = ''
+				persistNotepadDOM.innerHTML = ''
+			})
+		}
+
+		function listFiles() {
+			sendRequest('POST', CONTEXT_ROOT + 'list', null, result => {
+				let files = JSON.parse(result)
+				let listOfFileHTML = "<table><tr><th>Name</th><th width='50'></th><th>Size</th><th width='50'></th><th>Delete</th></tr>"
+				for (let file of files) {
+					if (file.name === FILENAME_PERSIST_NOTEPAD)
+						continue
+					listOfFileHTML += "<tr><td><a href='" + CONTEXT_ROOT + file.name + "'>" + decodeURIComponent(file.name) + "</a></td><td></td><td>" + file.size + "</td><td></td><td><a href='#' onclick='deleteFile(\"" + file.name + "\")'>X</a></td></tr>"
+				}
+				listOfFileHTML += "</table>"
+				downloadDOM.innerHTML = listOfFileHTML
+			})
+		}
+
+		function sendRequest(method, url, data, callback) {
+			let xhr = new XMLHttpRequest()
+			xhr.open(method, url, true)
+			if (method === 'PUT')
+				xhr.setRequestHeader('Content-Type', 'application/octate-stream')
+			xhr.onreadystatechange = function () {
+				if (xhr.readyState === 4) {
+					if (xhr.status === 200) {
+						callback(xhr.responseText)
+					} else {
+						if (url.endsWith(FILENAME_PERSIST_NOTEPAD))
+							return
+						showToastMessage(xhr.responseText, 'error')
+					}
+				}
+			}
+			xhr.send(data)
+		}
+
+		function showToastMessage(msg, type) {
+			toastDOM.innerText = msg
+			if (type === 'error') {
+				toastDOM.classList.add('toast-visible-error')
+				setTimeout(function () { toastDOM.classList.remove('toast-visible-error') }, 3000)
+			} else {
+				toastDOM.classList.add('toast-visible-success')
+				setTimeout(function () { toastDOM.classList.remove('toast-visible-success') }, 3000)
+			}
+		}
+			
+		function writePersistNotepad() {
+			let text = persistNotepadDOM.value
+			if (text === cachedPersistNotepad)
+				return
+			sendRequest('PUT', CONTEXT_ROOT + FILENAME_PERSIST_NOTEPAD, text, result => {
+				cachedPersistNotepad = text
+				showToastMessage('Uploaded', 'success')
+			})
+		}
+
+		function readPersistNotepad() {
+			sendRequest('GET', CONTEXT_ROOT + FILENAME_PERSIST_NOTEPAD, null, result => {
+				cachedPersistNotepad = result
+				document.getElementById('persist-notepad').innerHTML = result
+			})
+		}
+
+		let timerSaveText
+		let cachedPersistNotepad = ''
+		function savePersistNotepad() {
+			clearTimeout(timerSaveText)		
+			timerSaveText = setTimeout(writePersistNotepad, 1000)
+		}
+	</script>
+</head>
+
+<body onload="onload()">
+	<table>
+		<tr>
+			<td>
+				<h3>FileBox</h3>
+			</td>
+			<td>
+			</td>
+		</tr>
+		<tr>
+			<td valign='top' width='45%'>
+				<table>
+					<tr>
+						<td>
+							<!-- Upload -->
+							<label for="upload" class="btn btn-raised">Upload</label>
+							<input class="hidden" id="upload" type="file" onchange="uploadFile(event)" /><br/>
+						</td>
+						<td width='50'></td>
+						<td>
+							<!-- Clear -->
+							<a href='#' onClick="clearFiles()">Delete All</a>
+						</td>
+					</tr>
+				</table>
+				<ol id="download"></ol>
+			</td>
+			<td width='150'>
+			</td>
+			<td valign='top' width='45%'>
+				<table class='hint'>
+					<tr>
+						<td nowrap>CLI example - upload:</td>
+						<td nowrap>curl -X PUT <span name="href_field"></span>myfile -T myfile</td>
+					</tr>
+					<tr>
+						<td nowrap valign="top">CLI example - download:</td>
+						<td nowrap>
+							curl <span name="href_field"></span>myfile<br/>
+							wget <span name="href_field"></span>myfile
+						</td>
+					</tr>
+				</table>
+				<br/>
+				<a href='https://github.com/nanw1103/filebox' class='hint'>https://github.com/nanw1103/filebox</a>
+			</td>
+		</tr>
+	</table>
+	
+	
+
+	<div id="toast"></div>
+	<br/>
+	<hr/>
+	<br/>
+	<div>
+		<table>
+			<tr>
+				<td nowrap valign='top'><h4>Persist Notepad</h4></td>
+				<td width='40px'></td>
+				<td nowrap valign='top'><i>Paste text here for cross-browser access</i></td>
+			</tr>
+		</table>
+		<textarea autofocus cols='120' rows='20' style='white-space: pre-wrap;' onkeyup='savePersistNotepad()' onblur='savePersistNotepad()' id='persist-notepad'></textarea>
+	</div>
+</body>
+</html>
+`

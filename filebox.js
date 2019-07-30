@@ -20,7 +20,9 @@ const readFile = promisify(fs.readFile.bind(fs))
 const readdir = promisify(fs.readdir.bind(fs))
 
 const httpServer = http.createServer(requestHandler)
-httpServer.listen(port, () => { console.log('FileBox is listening on port ' + port) })
+httpServer.listen(port, () => { 
+	console.log(`FileBox is on http://localhost:${port}${CONTEXT_ROOT}`)
+})
 
 const REPO = path.join(__dirname, 'download')
 if (!fs.existsSync(REPO))
@@ -99,13 +101,12 @@ async function downloadFile(req) {
 	let target = path.basename(req.url)
 	let file = path.join(REPO, target)
 	if (!fs.existsSync(file))
-		return RESP404
+		return RESP_404
 	let content = await readFile(file)
 	return createResponse(content, 200, 'application/octet-stream', Buffer.byteLength(content))
 }
 
 function uploadFile(req) {
-	console.log(req.headers)
 	let target = path.basename(req.url)
 	let file = path.join(REPO, target)
 
@@ -115,7 +116,9 @@ function uploadFile(req) {
 			return handleMultiPartUpload()
 		if (contentType.startsWith('application/x-www-form-urlencoded'))
 			return handleBinaryUpload()
-		cosnole.log('Unknown content type:', contentType)
+		if (contentType.startsWith('application/octate-stream'))
+			return handleBinaryUpload()
+		console.log('Unknown content type:', contentType)
 	}
 	return handleBinaryUpload()
 
@@ -267,242 +270,12 @@ function getClientIp(req) {
 }
 
 //--------------------------------
-const INDEX_HTML = `
-<!DOCTYPE html>
-<html>
-<head>
-	<title>FileBox</title>
-	<link rel="icon" type="image/x-icon" href="data:image/x-icon;data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAA7EAAAOxAGVKw4bAAAABGdBTUEAALGOfPtRkwAAACBjSFJNAAB6JQAAgIMAAPn/AACA6QAAdTAAAOpgAAA6mAAAF2+SX8VGAAABG0lEQVR42mL8//8/w0ACgABioUQz4+KX92Hs/7HiiuSYARBATFTwhAIlmgECiIlhgAFAALFQO0hJjS6AAGLCFaTIGqhoOUZ0AQQQNgc8oKYj0Cx/gC4PEEAoDkAKGqo4Apvl6FELEEAYIYDNEVTIJQ9wpSuAAMKaC9AcQQg8IEYeV6IGCCDGgS4JAQJowMsBgAAacAcABNCAOwAggFiIKbmoAXAlQoAAYiEiC1ED4MwpAAE04FEAEEAsRAYfI5klIcE8DhBAAx4CAAE04A4ACKABdwBAAA24AwACaMAdABBAA+4AgAAacAcABNCAOwAggIgqiIgpUMgFAAE04CEAEECEQuABrR0AEEAD3iQDCKABjwKAABpwBwAEGAAhqEKviILPUgAAAABJRU5ErkJggg==" />
-	<style>
-		body {
-			display: flex;
-			flex-direction: column;
-			justify-content: flex-start;
-			align-content: center;
-			align-items: center;
-		}
-
-		#toast {
-			visibility: hidden;
-			background-color: black;
-			min-width: 250px;
-			margin-left: -125px;
-			color: #fff;
-			text-align: center;
-			border-radius: 2px;
-			padding: 16px;
-			position: fixed;
-			z-index: 1;
-			left: 50%;
-			bottom: 30px;
-		}
-
-		.toast-visible-error {
-			visibility: visible !important;
-			animation: fadein 0.5s, fadeout 0.5s 2.5s;
-			background-color: red !important;
-		}
-
-		.toast-visible-success {
-			visibility: visible !important;
-			animation: fadein 0.5s, fadeout 0.5s 2.5s;
-			background-color: green !important;
-		}
-
-		.hint {
-			color: #888;
-			text
-		}
-		
-		@keyframes fadein {
-			from {
-				bottom: 0;
-				opacity: 0;
-			}
-			to {
-				bottom: 30px;
-				opacity: 1;
-			}
-		}
-
-		@keyframes fadeout {
-			from {
-				bottom: 30px;
-				opacity: 1;
-			}
-			to {
-				bottom: 0;
-				opacity: 0;
-			}
-		}
-
-		.btn {
-			display: inline-block;
-			min-width: 88px;
-			height: 36px;
-			line-height: 36px;
-			border: none;
-			border-radius: 5px;
-			background-color: orange;
-			text-align: center;
-			text-decoration: none;
-			text-transform: uppercase;
-			padding: 0 10px;
-			color: white;
-			cursor: pointer;
-			transition: opacity 0.25s ease-in-out;
-		}
-
-		.btn-raised {
-			box-shadow: var(--bs1);
-		}
-
-		.btn-clear {
-			background-color: grey;
-		}
-
-		.hidden {
-			display: none;
-		}
-	</style>
-</head>
-
-<body>
-	<table>
-		<tr>
-			<td>
-				<h3>FileBox</h3>
-			</td>
-			<td>
-			</td>
-		</tr>
-		<tr>
-			<td valign='top' width='45%'>
-				<table>
-					<tr>
-						<td>
-							<!-- Upload -->
-							<label for="upload" class="btn btn-raised">Upload</label>
-							<input class="hidden" id="upload" type="file" onchange="uploadFile(event)" /><br/>
-						</td>
-						<td width='50'></td>
-						<td>
-							<!-- Clear -->
-							<a href='#' onClick="clearFiles()">Delete All</a>
-						</td>
-					</tr>
-				</table>
-				<ol id="download"></ol>
-			</td>
-			<td width='150'>
-			</td>
-			<td valign='top' width='45%'>
-				<table class='hint'>
-					<tr>
-						<td nowrap>CLI example - upload:</td>
-						<td nowrap>curl -X PUT <span name="href_field"></span>myfile -T myfile</td>
-					</tr>
-					<tr>
-						<td nowrap valign="top">CLI example - download:</td>
-						<td nowrap>
-							curl <span name="href_field"></span>myfile<br/>
-							wget <span name="href_field"></span>myfile
-						</td>
-					</tr>
-				</table>
-				<br/>
-				<a href='https://github.com/nanw1103/filebox' class='hint'>https://github.com/nanw1103/filebox</a>
-			</td>
-		</tr>
-	</table>
-	
-	
-
-	<div id="toast"></div>
-	<script>
-		var downloadDOM = document.getElementById('download')
-		var toastDOM = document.getElementById('toast')
-		listFiles()
-		let baseUrl = window.location.href
-		let indexOfHash = baseUrl.indexOf('#')
-		if (indexOfHash > 0)
-			baseUrl = baseUrl.substring(0, indexOfHash)
-		if (!baseUrl.endsWith('/'))
-			baseUrl += '/'
-		let hostFields = document.getElementsByName('href_field')
-		for (let f of hostFields)
-			f.innerText = baseUrl
-
-		function uploadFile(event) {
-			let target = event.target || event.srcElement || event.currentTarget
-			let file = target.files[0]
-			sendRequest('PUT', '${CONTEXT_ROOT}' + file.name, file, result => {
-				showToastMessage('Uploaded', 'success')
-				listFiles()
-			})
-			event.target.value = ''
-		}
-
-		function deleteFile(name) {
-			sendRequest('DELETE', '${CONTEXT_ROOT}' + name, null, result => {
-				showToastMessage('Deleted', 'success')
-				listFiles()
-			})
-		}
-
-		function clearFiles(event) {
-			sendRequest('POST', '${CONTEXT_ROOT}clear', null, result => {
-				showToastMessage('Cleared', 'success')
-				listFiles()
-			})
-		}
-
-		function listFiles() {
-			sendRequest('POST', '${CONTEXT_ROOT}list', null, result => {
-				let files = JSON.parse(result)
-				let listOfFileHTML = "<table><tr><th>Name</th><th width='50'></th><th>Size</th><th width='50'></th><th>Delete</th></tr>"
-				for (let file of files)
-					listOfFileHTML += "<tr><td><a href='${CONTEXT_ROOT}" + file.name + "'>" + file.name + "</a></td><td></td><td>" + file.size + "</td><td></td><td><a href='#' onclick='deleteFile(\\"" + file.name + "\\")'>X</a></td></tr>"
-				listOfFileHTML += "</table>"
-				downloadDOM.innerHTML = listOfFileHTML
-			})
-		}
-
-		function sendRequest(method, url, data, callback) {
-			let xhr = new XMLHttpRequest()
-			xhr.open(method, url, true)
-			if (method === 'PUT')
-				xhr.setRequestHeader('Content-Type', 'application/octate-stream')
-			xhr.onreadystatechange = function () {
-				if (xhr.readyState === 4) {
-					if (xhr.status === 200) {
-						callback(xhr.responseText)
-					} else {
-						showToastMessage(xhr.responseText, 'error')
-					}
-				}
-			}
-			xhr.send(data)
-		}
-
-		function showToastMessage(msg, type) {
-			toastDOM.innerText = msg
-			if (type === 'error') {
-				toastDOM.classList.add('toast-visible-error')
-				setTimeout(function () { toastDOM.classList.remove('toast-visible-error') }, 3000)
-			} else {
-				console.log('toastdom', toastDOM)
-				toastDOM.classList.add('toast-visible-success')
-				setTimeout(function () { toastDOM.classList.remove('toast-visible-success') }, 3000)
-			}
-		}
-	</script>
-</body>
-</html>
-`
+const INDEX_HTML = fs.readFileSync('./template.html', 'utf8')
+INDEX_HTML.replace('${CONTEXT_ROOT_PLACE_HOLDER}', CONTEXT_ROOT)
 
 const RESP_200 = createResponse('', 200)
 const RESP_400 = createResponse('Invalid request', 400)
 const RESP_400_INCOMPLETE = createResponse('Incomplete upload', 400)
 const RESP_404 = createResponse('Not found', 404)
+const RESP_405 = createResponse('Method not allowed', 405)
 const RESP_INDEX = createResponse(INDEX_HTML, 200, 'text/html')
