@@ -116,8 +116,8 @@
 			if (!baseUrl.endsWith('/'))
 				baseUrl += '/'
 			let hostFields = document.getElementsByName('href_field')
-			for (let f of hostFields)
-				f.innerText = baseUrl
+			for (let i = 0; i < hostFields.length; i++)
+				hostFields[i].innerText = baseUrl
 
 			listFiles()
 			readPersistNotepad()
@@ -277,9 +277,9 @@
 	<div>
 		<table>
 			<tr>
-				<td nowrap valign='top'><h4>Persist Notepad</h4></td>
+				<td nowrap valign='center'><h4>Persist Notepad</h4></td>
 				<td width='40px'></td>
-				<td nowrap valign='top'><i>Paste text here for cross-browser access</i></td>
+				<td nowrap valign='center'><i>Paste text here for cross-browser access</i></td>
 			</tr>
 		</table>
 		<textarea autofocus cols='120' rows='20' style='white-space: pre-wrap;' onkeyup='savePersistNotepad()' onblur='savePersistNotepad()' id='persist-notepad'></textarea>
