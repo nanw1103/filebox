@@ -81,17 +81,54 @@ function createResponse(content, statusCode = 200, contentType, contentLength) {
 	}
 }
 
+const ONE_SECOND = 1000
+const ONE_MINUTE = ONE_SECOND * 60
+const ONE_HOUR = ONE_MINUTE * 60
+const ONE_DAY = ONE_HOUR * 24
+const ONE_WEEK = ONE_DAY * 7
+const ONE_YEAR = ONE_DAY * 365
+
+function formatTimespan(ms) {
+	let years = ms / ONE_YEAR | 0
+	ms -= years * ONE_YEAR
+	let weeks = ms / ONE_WEEK | 0
+	ms -= weeks * ONE_WEEK
+	if (years > 0)
+		return `${years}y${weeks}w`
+	let days = ms / ONE_DAY | 0
+	ms -= days * ONE_DAY
+	if (weeks > 0)
+		return `${weeks}w${days}d`
+	let hours = ms / ONE_HOUR | 0
+	ms -= hours * ONE_HOUR
+	if (days > 0)
+		return `${days}d${twoDigits(hours)}h`
+	let minutes = ms / ONE_MINUTE | 0
+	ms -= minutes * ONE_MINUTE
+	if (hours > 0)
+		return `${hours}h${twoDigits(minutes)}m`
+	let seconds = ms / ONE_SECOND | 0
+	return `${minutes}m${twoDigits(seconds)}s`
+}
+
+function twoDigits(n) {
+	return n < 9 ? '0' + n : n
+}
+
 async function listFiles() {
 	let names = await readdir(REPO)		
 	let files = []
+	let now = Date.now()
 	for (let name of names) {
 		let stat = fs.statSync(path.join(REPO, name))
 		let size = stat.size
 		let type = stat.isDirectory() ? 'directory' : stat.isFile() ? 'file' : 'other'
+		let age = formatTimespan(now - stat.mtimeMs)
 		files.push({
 			name,
 			size,
-			type
+			type,
+			age
 		})
 	}
 	return createResponse(files)

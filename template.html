@@ -152,11 +152,14 @@
 		function listFiles() {
 			sendRequest('POST', CONTEXT_ROOT + 'list', null, result => {
 				let files = JSON.parse(result)
-				let listOfFileHTML = "<table><tr><th>Name</th><th width='50'></th><th>Size</th><th width='50'></th><th>Delete</th></tr>"
+				let listOfFileHTML = "<table border=0><tr><th>Name</th><th width='50'></th><th>Size</th><th width='50'></th><th>Age</th><th width='50'></th><th>Delete</th></tr>"
 				for (let file of files) {
 					if (file.name === FILENAME_PERSIST_NOTEPAD)
 						continue
-					listOfFileHTML += "<tr><td><a href='" + CONTEXT_ROOT + file.name + "'>" + decodeURIComponent(file.name) + "</a></td><td></td><td>" + file.size + "</td><td></td><td><a href='#' onclick='deleteFile(\"" + file.name + "\")'>X</a></td></tr>"
+					listOfFileHTML += "<tr><td><a href='" + CONTEXT_ROOT + file.name + "'>" + decodeURIComponent(file.name) + "</a></td><td></td>"
+						+ "<td>" + file.size + "</td><td></td>"
+						+ "<td>" + file.age + "</td><td></td>"
+						+ "<td><a href='#' onclick='deleteFile(\"" + file.name + "\")'>X</a></td></tr>"
 				}
 				listOfFileHTML += "</table>"
 				downloadDOM.innerHTML = listOfFileHTML
